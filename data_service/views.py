@@ -41,15 +41,16 @@ class MenuDataApi(APIView):
     def get(self,request,resId):
         res = RestdataTable.objects.filter(res_id=resId)
         seriRes = ResDataSerializer(res,many=True)
+        if not MenuDataTable.objects.filter(resId=resId).exists():
+            response = requests.get("http://127.0.0.1:8000/data/u/"+str(resId))
         cards = MenuDataTable.objects.filter(resId=resId)
-        if not cards:
-            response = requests.post("http://127.0.0.1:8000/data/m/"+str(resId))
-            cards = MenuDataTable.objects.filter(resId=resId)
-        
         seri = MenuDataSerializer(cards,many=True)
         return Response({"menudata":seri.data,"resData":seriRes.data})
     
-    def post(self,request,resId):
+        
+class MenuUpdateApi(APIView):
+
+    def get(self,request,resId):
         MENU_API = "https://www.swiggy.com/dapi/menu/pl?page-type=REGULAR_MENU&complete-menu=true&lat=18.5204303&lng=73.8567437&restaurantId="
 
         headers = {
@@ -65,9 +66,8 @@ class MenuDataApi(APIView):
                 cards.append(c)
         for c in cards:
             title = c["card"]["card"]["title"]
-            if not MenuDataTable.objects.filter(resId=int(resId),title=title).first():
+            if not MenuDataTable.objects.filter(resId=int(resId),title=title).exists():
                 serialize = MenuDataSerializer(data={"data":c,"resId":int(resId),"title":title})
                 if serialize.is_valid():
                     serialize.save()
         return Response(cards)
-    
